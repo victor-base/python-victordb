@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "victordb"
+version = "0.1.1"
+description = "VictorDB: Cliente Python y ORM para bases de datos vectoriales y key-value, con soporte para operaciones de alto rendimiento y modelado de datos flexible."
+authors = [
+  { name = "Emiliano Billi", email = "emiliano.billi@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "cbor2",
+    "snowflake-id"
+]
+license = "MIT"
+keywords = ["vector database", "key-value", "orm", "python", "database", "VictorDB"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Intended Audience :: Developers",
+  "Topic :: Database",
+  "Topic :: Software Development :: Libraries :: Python Modules"
+]
+# Añadir sección para especificar el paquete
+
+[tool.setuptools]
+packages = ["victordb"]
