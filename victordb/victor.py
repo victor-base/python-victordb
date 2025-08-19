@@ -10,22 +10,21 @@ from enum import IntEnum
 from snowflake import SnowflakeGenerator
 
 class MessageType(IntEnum):
-    # Vector index operations
-    INSERT = 0x01
-    INSERT_RESULT = 0x02
-    DELETE = 0x03
-    DELETE_RESULT = 0x04
-    SEARCH = 0x05
-    MATCH_RESULT = 0x06
-    ERROR = 0x07
-    
-    # Key-value table operations
-    PUT = 0x08
-    PUT_RESULT = 0x09
-    GET = 0x0A
-    GET_RESULT = 0x0B
-    DEL = 0x0C
-    DEL_RESULT = 0x0D
+    # Vector protocol message types
+    MSG_INSERT          = 0x01
+    MSG_DELETE          = 0x02
+    MSG_SEARCH          = 0x03
+    MSG_MATCH_RESULT    = 0x04
+
+
+    # Key-Value protocol message types
+    MSG_PUT             = 0x06
+    MSG_DEL             = 0x07
+    MSG_GET             = 0x08
+    MSG_GET_RESULT      = 0x09
+
+    MSG_OP_RESULT       = 0x0A
+    MSG_ERROR           = 0x0B
 
 
 class VictorError(Exception):
@@ -119,7 +118,7 @@ class VictorClientBase:
         msg_len = hdr_val & 0x0FFFFFFF
         payload = self._recv_all(msg_len)
 
-        if msg_type == MessageType.ERROR:
+        if msg_type == MessageType.MSG_ERROR:
             code, msg = cbor2.loads(payload)
             raise VictorError(code, msg)
 
@@ -172,9 +171,9 @@ class VictorIndexClient(VictorClientBase):
             VictorError: If insertion fails
         """
         msg = cbor2.dumps([id, vector])
-        self._send_msg(MessageType.INSERT, msg)
+        self._send_msg(MessageType.MSG_INSERT, msg)
         msg_type, payload = self._recv_msg()
-        if msg_type != MessageType.INSERT_RESULT:
+        if msg_type != MessageType.MSG_OP_RESULT:
             raise VictorError(-1, f"Unexpected message type {msg_type}, expected INSERT_RESULT")
         [code, message] = cbor2.loads(payload)
         if code != 0:  # SUCCESS = 0
@@ -195,9 +194,9 @@ class VictorIndexClient(VictorClientBase):
             VictorError: If deletion fails
         """
         msg = cbor2.dumps([id_])
-        self._send_msg(MessageType.DELETE, msg)
+        self._send_msg(MessageType.MSG_DELETE, msg)
         msg_type, payload = self._recv_msg()
-        if msg_type != MessageType.DELETE_RESULT:
+        if msg_type != MessageType.MSG_OP_RESULT:
             raise VictorError(-1, f"Unexpected message type {msg_type}, expected DELETE_RESULT")
         [code, message] = cbor2.loads(payload)
         if code != 0:
@@ -219,10 +218,10 @@ class VictorIndexClient(VictorClientBase):
             VictorError: If search fails
         """
         msg = cbor2.dumps([vector, topk])
-        self._send_msg(MessageType.SEARCH, msg)
+        self._send_msg(MessageType.MSG_SEARCH, msg)
         msg_type, payload = self._recv_msg()
         
-        if msg_type != MessageType.MATCH_RESULT:
+        if msg_type != MessageType.MSG_MATCH_RESULT:
             raise VictorError(-1, f"Unexpected message type {msg_type}, expected MATCH_RESULT")
         
         results = cbor2.loads(payload)
@@ -338,9 +337,9 @@ class VictorTableClient(VictorClientBase):
             VictorError: If put operation fails
         """
         msg = cbor2.dumps([key, value])
-        self._send_msg(MessageType.PUT, msg)
+        self._send_msg(MessageType.MSG_PUT, msg)
         msg_type, payload = self._recv_msg()
-        if msg_type != MessageType.PUT_RESULT:
+        if msg_type != MessageType.MSG_OP_RESULT:
             raise VictorError(-1, f"Unexpected message type {msg_type}, expected PUT_RESULT")
         [code, message] = cbor2.loads(payload)
         if code != 0:
@@ -361,7 +360,7 @@ class VictorTableClient(VictorClientBase):
             VictorError: If key is not found or operation fails
         """
         msg = cbor2.dumps([key])
-        self._send_msg(MessageType.GET, msg)
+        self._send_msg(MessageType.MSG_GET, msg)
         try:
             msg_type, payload = self._recv_msg()
         except VictorError as e:
@@ -369,7 +368,7 @@ class VictorTableClient(VictorClientBase):
                 return None
             else:
                 raise e
-        if msg_type != MessageType.GET_RESULT:
+        if msg_type != MessageType.MSG_GET_RESULT:
             raise VictorError(-1, f"Unexpected message type {msg_type}, expected GET_RESULT")
         [value] = cbor2.loads(payload)
         return value
@@ -388,9 +387,9 @@ class VictorTableClient(VictorClientBase):
             VictorError: If deletion fails
         """
         msg = cbor2.dumps([key])
-        self._send_msg(MessageType.DEL, msg)
+        self._send_msg(MessageType.MSG_DEL, msg)
         msg_type, payload = self._recv_msg()
-        if msg_type != MessageType.DEL_RESULT:
+        if msg_type != MessageType.MSG_OP_RESULT:
             raise VictorError(-1, f"Unexpected message type {msg_type}, expected DEL_RESULT")
 
         [code, message] = cbor2.loads(payload)
@@ -458,6 +457,9 @@ class VictorSession(object):
         if raw is None:
             return None
         return self.table.from_bytes(raw, target_type)
+
+    def kv_del(self, key: str) -> bool:
+        return self.table.delete(key)
 
     # List structures (ids) for _all and indexes
     def _list_add(self, key: str, id_: int) -> None:
@@ -589,7 +591,7 @@ class VictorBaseModel:
         if self.id is None:
             return
         # delete record
-        session.kv_put(self._record_key(self.id), None)  # or use a tombstone if you prefer
+        session.kv_del(self._record_key(self.id))
         # remove from _all
         session._list_remove(self._all_key(), self.id)
         # remove from indexes
