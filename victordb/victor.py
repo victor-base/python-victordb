@@ -459,7 +459,7 @@ class VictorSession(object):
         return self.table.from_bytes(raw, target_type)
 
     def kv_del(self, key: str) -> bool:
-        return self.table.delete(key)
+        return self.table.delete(self.table.to_bytes(key))
 
     # List structures (ids) for _all and indexes
     def _list_add(self, key: str, id_: int) -> None:
