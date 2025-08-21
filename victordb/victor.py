@@ -482,7 +482,10 @@ class VictorSession(object):
             cur.remove(id_)
         except ValueError:
             pass
-        self.kv_put(key, cur)
+        if len(cur) == 0:
+            self.kv_del(key)
+        else:
+            self.kv_put(key, cur)
 
 
 # -----------------------
