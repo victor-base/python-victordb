@@ -156,7 +156,7 @@ class VictorIndexClient(VictorClientBase):
     SEARCH, and DELETE on the vector index server.
     """
 
-    def insert(self, id: int, vector: List[float]) -> int:
+    def insert(self, id: int, tag: int, vector: List[float]) -> int:
         """
         Insert a vector into the index.
         
@@ -170,7 +170,7 @@ class VictorIndexClient(VictorClientBase):
         Raises:
             VictorError: If insertion fails
         """
-        msg = cbor2.dumps([id, vector])
+        msg = cbor2.dumps([id, tag, vector])
         self._send_msg(MessageType.MSG_INSERT, msg)
         msg_type, payload = self._recv_msg()
         if msg_type != MessageType.MSG_OP_RESULT:
@@ -203,7 +203,7 @@ class VictorIndexClient(VictorClientBase):
             raise VictorError(code, message)
         return code == 0  # SUCCESS = 0
 
-    def search(self, vector: List[float], topk: int) -> List[Tuple[int, float]]:
+    def search(self, tag: int, vector: List[float], topk: int) -> List[Tuple[int, float]]:
         """
         Search for similar vectors in the index.
         
@@ -217,7 +217,7 @@ class VictorIndexClient(VictorClientBase):
         Raises:
             VictorError: If search fails
         """
-        msg = cbor2.dumps([vector, topk])
+        msg = cbor2.dumps([tag, vector, topk])
         self._send_msg(MessageType.MSG_SEARCH, msg)
         msg_type, payload = self._recv_msg()
         

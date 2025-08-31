@@ -104,7 +104,3 @@ print(users)
 - `get(session: VictorSession, id_: int) -> Optional[Self]`
 - `all_ids(session: VictorSession) -> List[int]`
 - `query_eq(session: VictorSession, field: str, value: Any) -> List[Self]`
-
-## License
-
-MIT

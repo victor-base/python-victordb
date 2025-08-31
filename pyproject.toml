@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "victordb"
-version = "0.1.7"
+version = "1.0.1"
 description = "VictorDB is a Python client and ORM for high-performance vector and key-value databases. It provides a simple, flexible API for vector search, key-value storage, and object modeling, making it easy to build modern AI and data applications."
 authors = [
   { name = "Emiliano Billi", email = "emiliano.billi@gmail.com" }
@@ -15,7 +15,6 @@ dependencies = [
     "cbor2",
     "snowflake-id"
 ]
-license = "MIT"
 keywords = ["vector database", "key-value", "orm", "python", "database", "VictorDB"]
 classifiers = [
   "Programming Language :: Python :: 3",
